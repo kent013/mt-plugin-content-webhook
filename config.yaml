@@ -1,0 +1,31 @@
+id: ContentWebhook
+key: ContentWebhook
+name: Content Webhook
+description: <__trans phrase="Send webhook notifications when content data is saved">
+version: 1.0.0
+author_name: Kentaro ISHITOYA
+author_link: https://github.com/kent013
+plugin_link: https://github.com/kent013/mt-plugin-contents-webhook
+doc_link: https://github.com/kent013/mt-plugin-contents-webhook
+
+l10n_class: ContentWebhook::L10N
+
+system_config_template: system_config.tmpl
+
+callbacks:
+  # コンテンツデータ保存後の処理
+  cms_post_save.content_data: ContentWebhook::Callback::post_save_content_data
+  # コンテンツデータ削除後の処理
+  cms_post_delete.content_data: ContentWebhook::Callback::post_delete_content_data
+
+applications:
+  cms:
+    methods:
+      # システム設定画面の処理
+      content_webhook_config: ContentWebhook::CMS::config
+      content_webhook_save: ContentWebhook::CMS::save_config
+
+settings:
+  webhook_url:
+    scope: system
+    default: ''

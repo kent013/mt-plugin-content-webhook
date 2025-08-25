@@ -1,0 +1,19 @@
+<mt:setvarblock name="page_title"><__trans phrase="Content Webhook Settings"></mt:setvarblock>
+
+<mt:setvarblock name="html_head" append="1">
+<style>
+.webhook-config {
+    max-width: 800px;
+}
+</style>
+</mt:setvarblock>
+
+<div class="webhook-config">
+    <mtapp:setting
+        id="webhook_url"
+        label="<__trans phrase="Webhook URL">"
+        hint="<__trans phrase="Enter webhook URL">"
+        show_hint="1">
+        <input type="text" name="webhook_url" id="webhook_url" value="<mt:var name="webhook_url" escape="html">" class="form-control" style="width: 100%;" />
+    </mtapp:setting>
+</div>
