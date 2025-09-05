@@ -1,5 +1,5 @@
-id: ContentWebhook
-key: ContentWebhook
+id: mt-plugin-content-webhook
+key: mt-plugin-content-webhook
 name: Content Webhook
 description: <__trans phrase="Send webhook notifications when content data is saved">
 version: 1.0.0

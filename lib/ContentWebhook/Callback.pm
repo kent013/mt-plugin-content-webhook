@@ -11,15 +11,40 @@ sub post_save_content_data {
     my ($cb, $app, $obj, $orig_obj) = @_;
 
     # プラグイン設定を取得
-    my $plugin = MT->component('ContentWebhook');
-    my $webhook_url = $plugin->get_config_value('webhook_url', 'system') || '';
+    my $plugin = MT->component('mt-plugin-content-webhook');
+    my $webhook_url = '';
+    
+    unless ($plugin) {
+        # 直接PluginDataから設定を取得
+        require MT::PluginData;
+        # 両方のプラグイン名で試す（互換性のため）
+        my $pd = MT::PluginData->load({
+            plugin => 'mt-plugin-content-webhook',
+            key    => 'configuration'
+        });
+        
+        unless ($pd) {
+            $pd = MT::PluginData->load({
+                plugin => 'ContentWebhook',
+                key    => 'configuration'
+            });
+        }
+        
+        if ($pd && $pd->data) {
+            $webhook_url = $pd->data->{webhook_url} || '';
+        }
+        
+        # プラグインが見つからない場合は、PluginDataから取得したURLを使用
+        unless ($webhook_url && $webhook_url =~ /^https?:\/\//) {
+            return 1;
+        }
+    } else {
+        # プラグインが見つかった場合は、通常の方法で設定を取得
+        $webhook_url = $plugin->get_config_value('webhook_url', 'system') || '';
+    }
 
     # URLが設定されていない場合は何もしない
     return 1 unless $webhook_url && $webhook_url =~ /^https?:\/\//;
-
-    # 公開状態のコンテンツのみ処理
-    require MT::ContentStatus;
-    return 1 unless $obj->status == MT::ContentStatus::RELEASE();
 
     # Webhook送信データを作成
     my $webhook_data = _create_webhook_data($obj, 'content_data.saved');
@@ -35,8 +60,30 @@ sub post_delete_content_data {
     my ($cb, $app, $obj) = @_;
 
     # プラグイン設定を取得
-    my $plugin = MT->component('ContentWebhook');
-    my $webhook_url = $plugin->get_config_value('webhook_url', 'system') || '';
+    my $plugin = MT->component('mt-plugin-content-webhook');
+    my $webhook_url = '';
+    
+    if ($plugin) {
+        $webhook_url = $plugin->get_config_value('webhook_url', 'system') || '';
+    } else {
+        # 直接PluginDataから設定を取得
+        require MT::PluginData;
+        my $pd = MT::PluginData->load({
+            plugin => 'mt-plugin-content-webhook',
+            key    => 'configuration'
+        });
+        
+        unless ($pd) {
+            $pd = MT::PluginData->load({
+                plugin => 'ContentWebhook',
+                key    => 'configuration'
+            });
+        }
+        
+        if ($pd && $pd->data) {
+            $webhook_url = $pd->data->{webhook_url} || '';
+        }
+    }
 
     # URLが設定されていない場合は何もしない
     return 1 unless $webhook_url && $webhook_url =~ /^https?:\/\//;
@@ -76,22 +123,10 @@ sub _send_webhook_with_logging {
 
     eval {
         _send_webhook($url, $webhook_data);
-
-        # 成功ログ
-        MT->log({
-            message => $app->translate(
-                'Webhook notification sent for content data ID: [_1]',
-                $content_id
-            ),
-            level    => MT::Log::INFO(),
-            class    => 'content_data',
-            category => 'content_webhook',
-            metadata => $content_id
-        });
     };
 
     if ($@) {
-        # エラーログ
+        # エラーログのみ記録
         MT->log({
             message => $app->translate(
                 'Failed to send webhook for content data ID: [_1]. Error: [_2]',
